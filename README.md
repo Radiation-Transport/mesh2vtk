@@ -12,9 +12,11 @@ Windows or Linus systems.
 Detailed information and documentation is available on request contacting marco.fabbri@f4e.europa.eu
 
 ## How to use it
-> python -m mesh2vtk.py
+
+    >  python -m mesh2vtk.py
+
 
 ## What you need
-- Python 2.7
-- numpy,https://www.scipy.org/scipylib/download.html
+- Python 2.7, https://www.python.org/download/releases/2.7/
+- numpy, https://www.scipy.org/scipylib/download.html
 - vtkpython, https://www.vtk.org/download/
