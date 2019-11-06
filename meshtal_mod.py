@@ -1,3 +1,17 @@
+'''
+########################################################################################################
+# Copyright 2019 F4E | European Joint Undertaking for ITER and the Development                         #
+# of Fusion Energy (‘Fusion for Energy’). Licensed under the EUPL, Version 1.1                         #
+# or - as soon they will be approved by the European Commission - subsequent versions                  #
+# of the EUPL (the “Licence”). You may not use this work except in compliance                          #
+# with the Licence. You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl.html       #
+# Unless required by applicable law or agreed to in writing, software distributed                      #
+# under the Licence is distributed on an “AS IS” basis, WITHOUT WARRANTIES                             #
+# OR CONDITIONS OF ANY KIND, either express or implied. See the Licence permissions                    #
+# and limitations under the Licence.                                                                   #
+########################################################################################################
+'''
+
 # Version 2: quito bin angular gordo
 # V2.1: adapto a zval a meshtal MCNP6
 # V2.2: particulas diferentes a neutrones (wwout)
@@ -77,7 +91,8 @@ class Meshtal:
   def readMesh(self,mesh='all'):
 
     if self.filetype == 'MCNP' : 
-      for k,m in self.mesh.iteritems():
+      # for k,m in self.mesh.iteritems():
+      for k,m in self.mesh.items():
         if mesh == 'all' or k in mesh :
           # move to the mesh location in the file
           self.f.seek(m.pos)
@@ -120,7 +135,8 @@ class Meshtal:
 
   # Modify VTK structure for including parameters
   def setVTKparams(self,xdat):
-    for x,v in self.params.iteritems():
+    # for x,v in self.params.iteritems():
+    for x,v in self.params.items():
       t = vtk.vtkStringArray()
       t.SetName(x)
       t.InsertNextValue(v)
@@ -130,7 +146,8 @@ class Meshtal:
   def print_info(self):
 
     print(' Meshtally file : {}'.format(self.filename))
-    tlist = self.mesh.keys()
+    #tlist = self.mesh.keys()
+    tlist = list(self.mesh.keys())
     tlist.sort()
     for t in tlist:
        m = self.mesh[t]
@@ -404,7 +421,8 @@ class Fmesh:
           skipLines(f,hlines)
           hlines = hlinesNext  # subsequent reads
           for ix0 in range(rshape[1]):
-            xdat[ix1,ix0,:] = map(dfloat,f.readline().split()[1:]) # use dfloat conversion in case of no standar fortan exponent
+#            xdat[ix1,ix0,:] = map(dfloat,f.readline().split()[1:]) # use dfloat conversion in case of no standar fortan exponent
+            xdat[ix1,ix0,:] = list(map(dfloat,f.readline().split()[1:])) # use dfloat conversion in case of no standar fortan exponent  
           skipLines(f,3)
           for ix0 in range(rshape[1]):
             xerr[ix1,ix0,:] = f.readline().split()[1:] # automatic conversion
@@ -852,12 +870,12 @@ class Fmesh:
   # No vale para cilindricas o rotadas
   def getVTKrg(self):
     if not self.cart:
-      print 'Cylindrical meshtal cannot be plotted to RectangularGrid'
+      print('Cylindrical meshtal cannot be plotted to RectangularGrid')
       
 
     if np.any(self.rotation!=np.identity(3)):
-      print 'Rotated meshtal cannot be plotted to RectangularGrid'
-      print '... but plotting anyway (no rotation)'
+      print ('Rotated meshtal cannot be plotted to RectangularGrid')
+      print ('... but plotting anyway (no rotation)')
 
     xa = makeVTKarray(self.dims[3]+self.origin[3],'X (cm)')
     ya = makeVTKarray(self.dims[2]+self.origin[2],'Y (cm)')
@@ -1050,14 +1068,14 @@ def scalemesh(m1,f1):
 def addmesh(m1,m2,f1=1.,f2=1.,corr=False):
 
   if m1.part != m2.part :
-      print 'Warning: particle type are different'
+      print('Warning: particle type are different')
 
   if not m1.sameMesh(m2) :
-      print 'mesh dimensions are not equal'
+      print('mesh dimensions are not equal')
       return None
 
   if m1.type != m2.type :
-      print 'mesh type are different'
+      print('mesh type are different')
       return None
     
   msum = Fmesh(m1.meshtal)
@@ -1092,14 +1110,14 @@ def addmesh(m1,m2,f1=1.,f2=1.,corr=False):
 def diffmesh(m1,m2,absvalue=False,relative=False):
 
   if m1.part != m2.part :
-      print 'Warning: particle type are different'
+      print('Warning: particle type are different')
 
   if not m1.sameMesh(m2) :
-      print 'mesh dimensions are not equal'
+      print('mesh dimensions are not equal')
       return None
 
   if m1.type != m2.type :
-      print 'mesh type are different'
+      print('mesh type are different')
       return None
     
   msum = Fmesh(m1.meshtal)
@@ -1139,20 +1157,20 @@ def addbin(m1,binlist,flist=[],corr=False):
   nbins=len(binlist)
   if flist != []:
     if len(flist) != nbins:
-      print 'bin length and factor lenght is different'
+      print('bin length and factor lenght is different')
       return None
 
   if m1.etag == 'times' :
-      print 'Times bin cannot be added'
+      print('Times bin cannot be added')
       return None
 
   if nbins >= m1.ldims[0] :
-      print 'too many bin numbers'
+      print('too many bin numbers')
       return None
  
   for b in binlist :
      if b >= m1.ldims[0]-1 :
-       print 'at least one bin index exceed mesh bin length'
+       print('at least one bin index exceed mesh bin length')
        return None
   
   msum = Fmesh(m1.meshtal)

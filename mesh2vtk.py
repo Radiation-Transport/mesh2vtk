@@ -1,3 +1,17 @@
+'''
+########################################################################################################
+# Copyright 2019 F4E | European Joint Undertaking for ITER and the Development                         #
+# of Fusion Energy (‘Fusion for Energy’). Licensed under the EUPL, Version 1.1                         #
+# or - as soon they will be approved by the European Commission - subsequent versions                  #
+# of the EUPL (the “Licence”). You may not use this work except in compliance                          #
+# with the Licence. You may obtain a copy of the Licence at: http://ec.europa.eu/idabc/eupl.html       #
+# Unless required by applicable law or agreed to in writing, software distributed                      #
+# under the Licence is distributed on an “AS IS” basis, WITHOUT WARRANTIES                             #
+# OR CONDITIONS OF ANY KIND, either express or implied. See the Licence permissions                    #
+# and limitations under the Licence.                                                                   #
+########################################################################################################
+'''
+
 dep_path='./' # adjust this path to the location of the meshtal_mod.py module 
 import os
 import re
@@ -38,7 +52,7 @@ def answer_loop(menu):
   okeys = ['scale','sum','diff','binsum','identical','corr']
   menulist = {'principal':pkeys, 'info':ikeys, 'operate':okeys}  
   while True:
-    ans = raw_input(" enter action :")
+    ans = input(" enter action :")
     ans = ans.split()
     ans0 = None
     ans1 = None
@@ -69,14 +83,14 @@ def display_meshlist(opmesh=True):
       onefile = False
       for i,f in enumerate(meshfiles):
         print(" - {}".format(f))
-        tallylist = meshtally[i].mesh.keys()
-        tallylist = meshtally[i].mesh.keys()
+        #tallylist = meshtally[i].mesh.keys()
+        tallylist = list(meshtally[i].mesh.keys())
         tallylist.sort()
         for tally in tallylist:
           print("     - {}".format(tally))
     else:
       onefile = True
-      tallylist = meshtally[0].mesh.keys()
+      tallylist = list(meshtally[0].mesh.keys())
       tallylist.sort()
       for tally in tallylist:
         print("     - {}".format(tally))
@@ -146,7 +160,7 @@ def answer_meshlist(menu,answer,onefile=True):
       while True:
         error = False 
         if onefile :
-          sfile = raw_input(label_one[labelindex + ishft])
+          sfile = input(label_one[labelindex + ishft])
           sfile = sfile.split()
           if len(sfile) == 1  and sfile[0] == 'end': 
             finish = True
@@ -176,7 +190,7 @@ def answer_meshlist(menu,answer,onefile=True):
             error = True
             print(' {} values are entered,{} are expected'.format(len(sfile),nans))
         else :
-          sfile = raw_input(label[labelindex + ishft])
+          sfile = input(label[labelindex + ishft])
           sfile = sfile.split()
           if len(sfile) == 1 and sfile[0] == 'end': 
             finish = True
@@ -233,7 +247,7 @@ def answer_meshlist(menu,answer,onefile=True):
 
 def enterfilename(name):
     if name is None:
-      fname = raw_input(' enter Meshtally file name:')
+      fname = input(' enter Meshtally file name:')
     else:
       fname = name
     if fname != '' and fname not in meshfiles :
@@ -247,14 +261,15 @@ def enterfilename(name):
 
 def mltf_option(meshtal):
     normopt=['none','vtot','celf','']
-    keys = meshtal.mesh.keys()
+    #keys = meshtal.mesh.keys()
+    keys = list(meshtal.mesh.keys())
     keys.sort()
     for k in keys: 
       m =  meshtal.mesh[k]
       if m.__format__ == 'mltf' :
         print (' Tally mesh {} is multiflux, set normalization.'.format(k))
         while True:
-          ans=raw_input(' {lab[0]}(default), {lab[1]}, {lab[2]}:'.format(lab=normopt))
+          ans=input(' {lab[0]}(default), {lab[1]}, {lab[2]}:'.format(lab=normopt))
           if ans in normopt: 
             if ans == '':
               m.__mltopt__ = normopt[0]
@@ -275,14 +290,15 @@ def meshinfo():
       for f in meshfiles:
          print(" - {}".format(f))
       while True:
-        sfile = raw_input(' Select file #:')
+        sfile = input(' Select file #:')
         if sfile in meshfiles:
           im = meshfiles.index(sfile)
           break
         else:
           print (' bad filename')
 
-    tallylist = meshtally[im].mesh.keys()
+    #tallylist = meshtally[im].mesh.keys()
+    tallylist = list(meshtally[im].mesh.keys())
     tallylist.sort()
 
     # print tally list
@@ -302,7 +318,7 @@ def meshinfo():
         for f in tallylist:
           print(" - tally {}".format(f))
         while True:
-          tally = raw_input(' Select tally #:')
+          tally = input(' Select tally #:')
           if tally.isdigit():
             tally = int(tally)
           if tally in tallylist: 
@@ -397,14 +413,15 @@ def operate():
         meshtally[m1].mesh[tally].print_EbinRange()
 
         while True:
-          ans=raw_input(' Enter bin index list:' ) 
+          ans=input(' Enter bin index list:' ) 
           if ans == 'all':
              binlist = range(len(meshtally[m1].mesh[tally].ener))
              break
           elif re.search(r'[^\d +-]',ans) is None:
              binlist=ans.split()
-             binlist = map(int,binlist)
-             binlist.sort()
+             # binlist = map(int,binlist)
+             # binlist.sort()
+             binlist = sorted(map(int,binlist))
              if binlist[0] >= 0 and binlist[-1] < len(meshtally[m1].mesh[tally].ener) : break
           print (' bad bin list values')
 
@@ -420,7 +437,7 @@ def operate():
 
     elif ans == 'corr' : 
       corr = not corr
-      print ' Correlation set to {}'.format(corr)
+      print(' Correlation set to {}'.format(corr))
 
 
 def print_identical(m1,m2):
