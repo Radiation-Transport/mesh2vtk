@@ -21,6 +21,7 @@
 import numpy as np
 import vtk
 import os,time
+from scipy.spatial.transform import Rotation as R # For the rotation matrices in cyl
 from io import open
 
 # convert character to float 
@@ -315,7 +316,7 @@ class Fmesh:
           if onef : 
             self.__format__ = 'onef' 
           else :
-            self.__format__ = 'mltf' 
+            self.__format__ = 'mltf'
             
       self.dims.insert( 0, np.array(line[i+1:].split(),self.dtype) )
       self.ener = self.dims[0]  # shallow copy
@@ -811,6 +812,7 @@ class Fmesh:
     ptDims = np.array( [len(kdims[3]),len(kdims[2]),len(kdims[1])] )
     pts.SetNumberOfPoints(np.prod(ptDims))
 
+    ps=[]
     k = 0
     dpt = self.origin[:0:-1]  # origin en reversa
     for z in kdims[1]:
@@ -824,8 +826,24 @@ class Fmesh:
             pt = np.array( (x,y,z) )
           else:
             pt = np.array( (x*cz,x*sz,y) ) # por ahora axs = 0 0 1
-          pts.InsertPoint(k,pt+dpt)
+          ps.append(pt+dpt)
           k += 1
+
+    # cylindrical rotation
+    ps-=dpt
+    rotAxis = np.cross(self.axis,[0.,0.,1.])
+    if np.linalg.norm(rotAxis) == 0:
+        rotM = R.from_rotvec([0,0,0])
+    else:
+        rotAxis = rotAxis/np.linalg.norm(rotAxis)
+        ma=np.linalg.norm(self.axis)
+        ang = -np.arccos(np.dot(self.axis,[0.,0.,1.])/ma)
+        rotM = R.from_rotvec(rotAxis*ang)
+    ps=rotM.apply(ps)
+    ps+=dpt
+    for p in range(len(ps)):
+        pts.InsertPoint(p, ps[p])
+
     # Puntos definidos
     sg = vtk.vtkStructuredGrid()
     sg.SetDimensions(*ptDims)
