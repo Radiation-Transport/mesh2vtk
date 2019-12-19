@@ -12,6 +12,69 @@
 ########################################################################################################
 '''
 
+##----------------------------------------------------------------------------##
+##                         ********    **   ********                          ##
+##                         ********   ***   ********                          ##
+##                         **        ** *   **                                ##
+##                         ******   ******  ******                            ##
+##                         ******   ******  ******                            ##
+##                         **          **   ***                               ##
+##                         **          **   ********                          ##
+##                         **          **   ********                          ##
+##                                                                            ##
+##----------------------------------------------------------------------------##
+##                       TSS / A&C / Nuclear Section                          ##
+##----------------------------------------------------------------------------##
+##                                                                            ##
+##                         Fusion for Energy                                  ##
+##                         c/ Josep Pla, n2                                   ##
+##                      Torres Diagonal Litoral B3                            ##
+##                         Barcelona (Spain)                                  ##
+##                          +34 93 320 1800                                   ##
+##                    http://fusionforenergy.europa.eu/                       ##
+##                                                                            ##
+##----------------------------------------------------------------------------##
+ 
+    # CODE: mesh2vtk
+ 
+    # LANGUAGE: PYTHON 3.6
+	
+    # AUTHOR/S: Patrick Sauvan, Francisco Ogando, Marco Fabbri
+ 
+    # e-MAIL/S: psauvan@ind.uned.es, fogando@ind.uned.es, marco.fabbri@f4e.europa.eu
+ 
+    # DATE: 19/12/2019
+
+    # Copyright F4E 2019
+ 
+    # IDM: F4E_D_2BLKNA v1.0 
+ 
+    # DESCRIPTION: It converts the meshes produced by MCNP and D1S-UNED into a VTK format has been developed. 
+    #              The tool is a python 3.6 based script able to read any mesh format in meshtally files produced by D1SUNED, MCNP5 or MCNP6. 
+    #              Mesh format includes usual MCNP column or matrix format and also specific D1SUNED format including cell or isotope contribution 
+    #              binning and source mesh importance format. Both Cartesian and cylindrical meshes can be read. The tool incorporates also simple
+    #              functions to operate with meshes (add, scale, compare).
+    #              The tool is used through a text based interactive menu, and it can be run under Windows or Linus systems.
+
+	
+	# USAGE:      python –m mesh2vtk.py
+	
+	# OUTPUT:     meshtalfiles + NoTally + .vtk/.vtr
+
+	# VERSIONS: 
+	#            0.0 [2018-05-25]  ---> Developed by Francisco Ogando & Patricl Sauvan (UNED) under the F4E EXP-263,https://idm.f4e.europa.eu/?uid=2BLKNA
+	#                                   Starting version.
+	#            1.0 [2019-11-06]  ---> Improved by Marco Fabbri (F4E) & Alvaro Cubi (F4E-EXT)for further usage. Changes implemented:
+	#                                   1) Conversion to PY3.6
+    #                                   2) Capability to deal with cylindrical mesh not aligned with Z axis added
+
+
+	
+    # IMPROVEMENTS:   
+	#               --> 
+	#				--> 
+
+
 dep_path='./' # adjust this path to the location of the meshtal_mod.py module 
 import os
 import re

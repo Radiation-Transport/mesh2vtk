@@ -12,12 +12,28 @@
 ########################################################################################################
 '''
 
-# Version 2: quito bin angular gordo
-# V2.1: adapto a zval a meshtal MCNP6
-# V2.2: particulas diferentes a neutrones (wwout)
-# V2.3: Flujo maximo de referencia para WWOUT
-# V2.4: Lee ficheros de MCNPX procesados por gridconv
-# V2.5: Incluye anotaciones en los VTK, en forma de vtkStringArray en FieldData
+    # CODE: meshtal_mod (module used in conjunction with mesh2vtk)
+ 
+    # LANGUAGE: PYTHON 3.6
+	
+    # AUTHOR/S: Francisco Ogando, Patrick Sauvan
+ 
+    # e-MAIL/S: fogando@ind.uned.es, psauvan@ind.uned.es
+ 
+    # DATE: 19/12/2019
+
+    # Copyright F4E 2019
+ 
+    # IDM: F4E_D_2BLKNA v1.0 
+ 
+    # Internal versioning for records
+    # Version 0.2: quito bin angular gordo
+    # V0.2.1: adapto a zval a meshtal MCNP6
+    # V0.2.2: particulas diferentes a neutrones (wwout)
+    # V0.2.3: Flujo maximo de referencia para WWOUT
+    # V0.2.4: Lee ficheros de MCNPX procesados por gridconv
+    # V0.2.5: Incluye anotaciones en los VTK, en forma de vtkStringArray en FieldData
+   
 import numpy as np
 import vtk
 import os,time
