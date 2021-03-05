@@ -1,7 +1,7 @@
-![GitHub last commit](https://img.shields.io/github/last-commit/Radiation-Transport/iWW-GVR)
-![GitHub issues](https://img.shields.io/github/issues/Radiation-Transport/iWW-GVR)
-![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/Radiation-Transport/iWW-GVR)
-![GitHub top language](https://img.shields.io/github/languages/top/Radiation-Transport/iWW-GVR)
+![GitHub last commit](https://img.shields.io/github/last-commit/Radiation-Transport/mesh2vtk)
+![GitHub issues](https://img.shields.io/github/issues/Radiation-Transport/mesh2vtk)
+![GitHub closed issues](https://img.shields.io/github/issues-closed-raw/Radiation-Transport/mesh2vtk)
+![GitHub top language](https://img.shields.io/github/languages/top/Radiation-Transport/mesh2vtk)
 ![](https://img.shields.io/badge/license-EU%20PL-blue)
 
 # mesh2vtk
