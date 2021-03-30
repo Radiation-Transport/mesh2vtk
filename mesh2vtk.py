@@ -43,11 +43,11 @@
  
     # e-MAIL/S: psauvan@ind.uned.es, fogando@ind.uned.es, marco.fabbri@f4e.europa.eu
  
-    # DATE: 19/12/2019
+    # DATE: 30/30/2021
 
     # Copyright F4E 2019
  
-    # IDM: F4E_D_2BLKNA v1.0 
+    # IDM: F4E_D_2R2H62 v1.0 
  
     # DESCRIPTION: It converts the meshes produced by MCNP and D1S-UNED into a VTK format has been developed. 
     #              The tool is a python 3.6 based script able to read any mesh format in meshtally files produced by D1SUNED, MCNP5 or MCNP6. 
@@ -64,9 +64,10 @@
 	# VERSIONS: 
 	#            0.0 [2018-05-25]  ---> Developed by Francisco Ogando & Patricl Sauvan (UNED) under the F4E EXP-263,https://idm.f4e.europa.eu/?uid=2BLKNA
 	#                                   Starting version.
-	#            1.0 [2019-11-06]  ---> Improved by Marco Fabbri (F4E) & Alvaro Cubi (F4E-EXT)for further usage. Changes implemented:
+	#            1.0 [2021-03-30]  ---> Improved by Marco Fabbri (F4E) & Alvaro Cubi (F4E-EXT)for further usage. Changes implemented:
 	#                                   1) Conversion to PY3.6
     #                                   2) Capability to deal with cylindrical mesh not aligned with Z axis added
+    #                                   3) CuV mesh treatment added
 
 
 	
@@ -146,7 +147,6 @@ def display_meshlist(opmesh=True):
       onefile = False
       for i,f in enumerate(meshfiles):
         print(" - {}".format(f))
-        #tallylist = meshtally[i].mesh.keys()
         tallylist = list(meshtally[i].mesh.keys())
         tallylist.sort()
         for tally in tallylist:
@@ -324,14 +324,22 @@ def enterfilename(name):
 
 def mltf_option(meshtal):
     normopt=['none','vtot','celf','']
-    #keys = meshtal.mesh.keys()
+    askSameNorm = True
+    repeatNorm  = False
+    askSameFilter = True
+    repeatFilter  = False
+
     keys = list(meshtal.mesh.keys())
     keys.sort()
     for k in keys: 
       m =  meshtal.mesh[k]
-      if m.__format__ == 'mltf' :
-        print (' Tally mesh {} is multiflux, set normalization.'.format(k))
-        while True:
+      if m.__format__ in ['mltf','cuv'] :
+        if not repeatNorm :
+          print (' Tally mesh {} is cell-under-voxel, set normalization.'.format(k))
+        else:
+          print (' Tally mesh {} is cell-under-voxel, normalization set to {}.'.format(k,normtype))
+         
+        while True and not repeatNorm:
           ans=input(' {lab[0]}(default), {lab[1]}, {lab[2]}:'.format(lab=normopt))
           if ans in normopt: 
             if ans == '':
@@ -342,6 +350,44 @@ def mltf_option(meshtal):
             break
           else:
             print ('bad normalization option')
+
+        if repeatNorm :
+           m.__mltopt__ = normtype
+
+        if  len(meshtal.mesh) > 1 and askSameNorm:
+           askSameNorm = False
+           ans = input('Apply same normalization options for all meshes (Yes/No) ?')
+           if ans.upper() in ['YES','Y']:
+              repeatNorm = True
+              normtype = m.__mltopt__
+              
+       
+
+        # Inquire cell filtering
+        while True and not repeatFilter:
+          ans=input(' Enter cell filename (no filename no filtering):')
+          anslist=ans.split()
+          if ans == '':
+            m.__mltflt__ = None
+            break
+          else :
+            fname = ans
+            if os.path.isfile(fname):
+               m.__mltflt__ = fname
+               break
+            else:
+              print (' File {} not found.'.format(fname))
+
+        if repeatFilter :
+           m.__mltflt__ = filterFile
+
+        if  len(meshtal.mesh) > 1 and askSameFilter:
+           askSameFilter = False
+           ans = input('Use the same file filter for all meshes (Yes/No) ?')
+           if ans.upper() in ['YES','Y']:
+              repeatFilter = True
+              filterFile = m.__mltflt__
+
 
 def meshinfo():
     im  = 0
@@ -360,7 +406,6 @@ def meshinfo():
         else:
           print (' bad filename')
 
-    #tallylist = meshtally[im].mesh.keys()
     tallylist = list(meshtally[im].mesh.keys())
     tallylist.sort()
 
@@ -440,7 +485,7 @@ def operate():
 
     if ans != 'corr':
       # display mesh list
-      onefile = display_meshlist(False)
+      onefile = display_meshlist(True)
 
     if ans == 'scale' : 
       mlist = answer_meshlist('4',ans,onefile)
@@ -448,9 +493,14 @@ def operate():
         m1    =  mlist[0][0] 
         tally =  mlist[0][1] 
         sfact =  mlist[0][2]
-        if not meshtally[m1].mesh[tally].filled :
-           meshtally[m1].readMesh([tally])
-        smesh = scalemesh(meshtally[m1].mesh[tally],sfact)
+        if m1 == -1 :
+          smesh = scalemesh(newmesh[tally],sfact)
+        else:
+          if not meshtally[m1].mesh[tally].filled :
+             meshtally[m1].readMesh([tally])
+          smesh = scalemesh(meshtally[m1].mesh[tally],sfact)
+
+        smesh.filled = True
         newmesh[meshname]=smesh
 
     elif ans == 'sum' : 
@@ -466,19 +516,23 @@ def operate():
         smesh = DiffMesh(mlist[0],mlist[1])
         if smesh is not None: newmesh[meshname]=smesh
 
-    if ans == 'binsum' : 
+    elif ans == 'binsum' : 
       mlist = answer_meshlist('4',ans,onefile)
       if len(mlist) > 0 :
         m1    =  mlist[0][0] 
         tally =  mlist[0][1] 
-        if not meshtally[m1].mesh[tally].filled :
-           meshtally[m1].readMesh([tally])
-        meshtally[m1].mesh[tally].print_EbinRange()
+        if m1 == -1 :
+          mesh = newmesh[tally]
+        else:
+          if not meshtally[m1].mesh[tally].filled :
+             meshtally[m1].readMesh([tally])
+          mesh = meshtally[m1].mesh[tally]
+        mesh.print_EbinRange()
 
         while True:
           ans=input(' Enter bin index list:' ) 
           if ans == 'all':
-             binlist = range(len(meshtally[m1].mesh[tally].ener))
+             binlist = range(len(mesh.ener))
              break
           elif re.search(r'[^\d +-]',ans) is None:
              binlist=ans.split()
@@ -488,14 +542,20 @@ def operate():
              if binlist[0] >= 0 and binlist[-1] < len(meshtally[m1].mesh[tally].ener) : break
           print (' bad bin list values')
 
-        bmesh = addbin(meshtally[m1].mesh[tally],binlist,corr=corr)
+        bmesh = addbin(mesh,binlist,corr=corr)
         newmesh[meshname]=bmesh
 
     elif ans == 'identical' : 
       mlist = answer_meshlist('4',ans,onefile)
       if len(mlist) == 2 :
-        m1 = meshtally[mlist[0][0]].mesh[mlist[0][1]]
-        m2 = meshtally[mlist[1][0]].mesh[mlist[1][1]]
+        if mlist[0][0] == -1 :
+          m1 = newmesh[mlist[0][1]]
+        else :
+          m1 = meshtally[mlist[0][0]].mesh[mlist[0][1]]
+        if mlist[1][0] == -1 :
+          m2 = newmesh[mlist[1][1]]
+        else:
+          m2 = meshtally[mlist[1][0]].mesh[mlist[1][1]]
         print_identical(m1,m2)
 
     elif ans == 'corr' : 
@@ -517,6 +577,7 @@ def print_identical(m1,m2):
 def AddMesh(mlist):
    noread = {}   
    for m in mlist:
+     if m[0] == -1 : continue
      if not meshtally[m[0]].mesh[m[1]].filled:
         if m[0] in noread.keys():
           noread[m[0]].append(m[1])
@@ -525,28 +586,46 @@ def AddMesh(mlist):
    for k in noread.keys() :
       meshtally[k].readMesh(noread[k])
 
-   m1 = meshtally[mlist[0][0]].mesh[mlist[0][1]]
-   m2 = meshtally[mlist[1][0]].mesh[mlist[1][1]]
+   if mlist[0][0] == -1 :
+      m1 = newmesh[mlist[0][1]]
+   else :
+     m1 = meshtally[mlist[0][0]].mesh[mlist[0][1]]
+
+   if mlist[1][0] == -1 :
+     m2 = newmesh[mlist[1][1]]
+   else:
+     m2 = meshtally[mlist[1][0]].mesh[mlist[1][1]]
+
    f1 = mlist[0][2]
    f2 = mlist[1][2]
    msum = addmesh(m1,m2,f1,f2,corr=corr)
    if msum is None: return
    for m in mlist[2:]:
-     mi = meshtally[m[0]].mesh[m[1]]  
+     if m[0] == -1 :
+       mi = newmesh[m[1]]
+     else:
+       mi = meshtally[m[0]].mesh[m[1]]  
      fi = m[2]  
      msum  = addmesh(msum,mi,1.,fi,corr=corr)
      if msum is None: return
    return msum
 
 def DiffMesh(mlst1,mlst2):
-   if not meshtally[mlst1[0]].mesh[mlst1[1]].filled:
-      meshtally[mlst1[0]].readMesh([mlst1[1]])
-   if not meshtally[mlst2[0]].mesh[mlst2[1]].filled:
-      meshtally[mlst2[0]].readMesh([mlst2[1]])
+   if mlst1[0] == -1 :
+     m1 = newmesh[mlst1[1]]
+   else:
+     if not meshtally[mlst1[0]].mesh[mlst1[1]].filled:
+        meshtally[mlst1[0]].readMesh([mlst1[1]])
+     m1 = meshtally[mlst1[0]].mesh[mlst1[1]]
 
-   m1 = meshtally[mlst1[0]].mesh[mlst1[1]]
-   m2 = meshtally[mlst2[0]].mesh[mlst2[1]]
+   if mlst2[0] == -1 :
+     m2 = newmesh[mlst2[1]]
+   else:
+     if not meshtally[mlst2[0]].mesh[mlst2[1]].filled:
+        meshtally[mlst2[0]].readMesh([mlst2[1]])
+     m2 = meshtally[mlst2[0]].mesh[mlst2[1]]
 
+   print ('execute diff')
    return diffmesh(m1,m2)
 
 def clear_screen():

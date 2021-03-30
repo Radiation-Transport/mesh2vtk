@@ -1,4 +1,4 @@
-'''
+﻿'''
 ########################################################################################################
 # Copyright 2019 F4E | European Joint Undertaking for ITER and the Development                         #
 # of Fusion Energy (‘Fusion for Energy’). Licensed under the EUPL, Version 1.1                         #
@@ -14,17 +14,17 @@
 
     # CODE: meshtal_mod (module used in conjunction with mesh2vtk)
  
-    # LANGUAGE: PYTHON 3.6
+    # LANGUAGE: PYTHON 3.7
 	
     # AUTHOR/S: Francisco Ogando, Patrick Sauvan
  
     # e-MAIL/S: fogando@ind.uned.es, psauvan@ind.uned.es
  
-    # DATE: 19/12/2019
+    # DATE: 04/03/2021
 
-    # Copyright F4E 2019
+    # Copyright F4E 2021
  
-    # IDM: F4E_D_2BLKNA v1.0 
+    # IDM: F4E_D_2BLKNA v1.1 
  
     # Internal versioning for records
     # Version 0.2: quito bin angular gordo
@@ -33,6 +33,9 @@
     # V0.2.3: Flujo maximo de referencia para WWOUT
     # V0.2.4: Lee ficheros de MCNPX procesados por gridconv
     # V0.2.5: Incluye anotaciones en los VTK, en forma de vtkStringArray en FieldData
+    # F4E IDM version
+    # V1.0  : Moved to PY3.X, corrected the CYZ mesh orientation
+    # V1.1  : CuV mesh treatment included, small bug in parsing filtering file with only one element corrected
    
 import numpy as np
 import vtk
@@ -61,6 +64,38 @@ def splitn(string,n):
 def skipLines(f,n):
   for iskip in range(n): f.readline()
   return
+
+# read cell list from file for CUV filtering option
+def get_clist(fn):
+  f = open(fn,'rt')
+  lines = f.readlines()
+  f.close()
+  clist = []
+  filter_mode='accept'
+  for l in lines:
+    line = l.split('#')[0]
+
+    sc_num =  line.count(':')
+    line = line.replace(':',' : ',sc_num)
+
+    val = line.split()
+    if 'reject' in line :
+      filter_mode='reject'
+      val.remove('reject')
+
+    scidx = 0
+    for i in range(sc_num):
+      sc = val.index(':',scidx)
+      low = int(val[sc-1])
+      high = int(val[sc+1])
+      del(val[sc-1:sc+2])
+      scidx = sc
+      clist.extend(range(low,high+1))
+
+    clist.extend(map(int,val))
+
+  clist.insert(0,filter_mode)
+  return clist
 
 # Clase para leer meshtal files
 class Meshtal:
@@ -116,7 +151,11 @@ class Meshtal:
           if m.__format__ == 'mcnp' :
             m.readMCNP(self.f)
           else:
-            m.readSRCTYPE(self.f)
+            if m.__mltflt__ is not  None :
+              flist = get_clist( m.__mltflt__ )
+            else:
+              flist = None
+            m.readSRCTYPE(self.f, cfilter = flist)
 
   def __readHeadMCNP__(self):
     vals = self.f.readline().split()
@@ -230,12 +269,15 @@ class Fmesh:
 
      if 'importance mesh' in line:
            self.type = 'srcimp'
+     elif 'cell-under-voxel' in line:
+           self.type = 'cuv'
 
      # Read MCNP mesh comments
      line = f.readline()
      while 'Tally bin boundaries:' not in line :
         if 'response function' in line: self.dosecom = True
-        if 'Energy bin' in line  : self.usrbin = True
+        if 'Energy bin' in line  : 
+           if 'energy' not in line[10:-1] : self.usrbin = True
         if 'source tally' in line  :
             self.type = 'source'
         if 'Tally target:' in line  :
@@ -245,6 +287,10 @@ class Fmesh:
 
      if self.type == 'srcimp' and self.__format__ == 'undef' : 
         self.__format__ == 'impij'
+  
+     if self.type == 'cuv' :
+        self.__format__ = 'cuv'
+
 
   def __readMeshDim__(self,f):
 
@@ -298,7 +344,7 @@ class Fmesh:
       else:
          self.etag = line[0:i].split()[0].lower()
          if self.etag == 'cells' :
-           binlen=11
+           binlen=12
          else:
            binlen=10
          binlist=splitn(line[i+1:],binlen)[:-1]
@@ -316,12 +362,12 @@ class Fmesh:
         ne = int(line[i+1:])
         line = f.readline()
         i = line.index(':')
-        if self.type != 'srcimp' :
+        if self.type not in ['srcimp','cuv'] :
           # check if onef or mltf
           nelemts = self.ldims[0] * self.ldims[1] * self.ldims[2]   # dim of energy bin not yet inserted in ldims
           # 6 columns 12 char each
           # 2 block2 (flux, error)
-          nline = ne / 6
+          nline = int(ne / 6)
           nr    = ne % 6
           if nr != 0 : nline += 1
           nblck = 2*((12*ne)+nline) 
@@ -397,7 +443,7 @@ class Fmesh:
     if matFormat:
       skipLines(f,1)
       if self.etag == 'tally' :
-        self.tallyscore = float(f.readline().split()[-1])
+        self.tallyscore = [float(f.readline().split()[-1])]
       c = f.readline().split()[0]
       if self.cart:
         i= self.cvarsCart.index(c)
@@ -433,7 +479,10 @@ class Fmesh:
       xerr = np.zeros(rshape,self.dtype)
 
       for ie in range(self.ldims[0]):
-        if ie>0: skipLines(f,3)
+        if ie>0: 
+          skipLines(f,3)
+          if self.etag == 'tally' : self.tallyscore.append( float(f.readline().split()[-1]))          
+ 
         for ix1 in range(rshape[0]):
           skipLines(f,hlines)
           hlines = hlinesNext  # subsequent reads
@@ -513,6 +562,7 @@ class Fmesh:
       self.__readMeshCom__(f)
 
       # read mesh dimensions and bins
+      erint('readDims')
       self.__readMeshDim__(f)
 
     # Coordinates are origin-independent
@@ -522,11 +572,15 @@ class Fmesh:
         self.dims[i]  -= self.origin[i]
     # Memory storage for cell data
     # Reversed indeces to keep ordering in memory
-    if self.type == 'srcimp' : self.tallyscore = np.float(f.readline().split()[-1])
-    skipLines(f,5)
+    if self.type == 'cuv' :
+      skipLines(f,2)
+    else:
+      if self.type == 'srcimp' : self.tallyscore = np.float(f.readline().split()[-1])
+      skipLines(f,5)
 
     nelemts = self.ldims[1] * self.ldims[2] * self.ldims[3]
-    ne = self.ldims[0]
+    ne = int(self.ldims[0])
+
     if (ne > 1) : 
       nbin = ne+1
     else:
@@ -535,7 +589,7 @@ class Fmesh:
 
     # 6 columns 12 char each
     # 2 block2 (flux, error)
-    nline = ne / 6
+    nline = int(ne / 6)
     nr    = ne % 6
     if nr != 0 : nline += 1
 
@@ -570,7 +624,78 @@ class Fmesh:
         for i in range(ne):
            xdat[i,k] = dfloat(vals[i])
            xerr[i,k] = float(errs[i])
+
+    elif self.type == 'cuv' : 
+    # one/multiflux data format
+      if cfilter is not None :
+         if cfilter[0] == 'reject' :
+            accept = False
+         else:
+            accept = True 
+      for k in range(nelemts):
+        lvals  = f.readline().split()
+        nc     =   int(lvals[-1])
+        voxvol = float(lvals[-2])
+
+        celdata = [voxvol,[],[]]
+        cell = []
+
+     # read cell data info
+        for ic in range(nc):
+          vline = f.readline().split()
+          cline = int(vline[0])         
+          cell.append(cline)
+          if    cfilter is None                    or   \
+            (     accept and cline     in cfilter) or   \
+            ( not accept and cline not in cfilter)    : 
+
+              celdata[1].append(float(vline[1]))
+              if  nbin > 1 :
+                celdata[2].append([float(vline[2]),float(vline[3])])
+
+        voxvals = []
+        voxerrs = []
+     # read cell values and errors
+        for ic in cell:
+          valc = []
+          errc = []
+          if    cfilter is None                 or   \
+            (     accept and ic     in cfilter) or   \
+            ( not accept and ic not in cfilter)    : 
+
+             for i in range(nline) :
+                valc.extend(f.readline().split())
+             for i in range(nline) :
+                errc.extend(f.readline().split())
+
+             vals = np.array( [dfloat(x) for x in valc], self.dtype )
+             errs = np.array( errc, self.dtype )
+
+             if nbin > 1 :
+               np.append(vals,celdata[2][0])
+               np.append(errs,celdata[2][1])
+
+             voxvals.append(vals)
+             voxerrs.append(errs)
+          else:
+             skipLines(f,2*nline)
+
+        if len(voxvals) == 0:
+          vals = [0]*nbin
+          errs = [0]*nbin
+        else:
+          # sum all bin if not total bin 
+          vals,errs = sumCellInVox(voxvals,voxerrs,celdata,Vmult=self.__mltopt__) 
+
+        xdat[:,k] = vals[:]
+        xerr[:,k] = errs[:]
+
     else:
+      if cfilter is not None :
+         if cfilter[0] == 'reject' :
+           accept = False
+         else:
+           accept = True
     # one/multiflux data format
       for k in range(nelemts):
         lvals  = f.readline().split()
@@ -583,7 +708,9 @@ class Fmesh:
           vline = f.readline().split()
           cline = int(vline[0])         
           cell.append(cline)
-          if cfilter is None or cline in cfilter: 
+          if    cfilter is None                             or \
+            (     accept and  cline    in cfilter )           or \
+            ( not accept and cline not in cfilter ): 
             celfrac[1].append(float(vline[1]))
 
         voxvals = []
@@ -597,7 +724,7 @@ class Fmesh:
           for i in range(nline) :
             errc.extend(f.readline().split())
 
-          vals = np.array( map(dfloat,valc), self.dtype )
+          vals = np.array( [dfloat(x) for x in valc], self.dtype )
           errs = np.array( errc, self.dtype )
           voxvals.append(vals)
           voxerrs.append(errs)
@@ -605,13 +732,16 @@ class Fmesh:
           for ic in cell:
             valc = []
             errc = []
-            if cfilter is None or ic in cfilter: 
+            if    cfilter is None                             or \
+              (     accept and  cline    in cfilter )           or \
+              ( not accept and cline not in cfilter ): 
+
               for i in range(nline) :
                 valc.extend(f.readline().split())
               for i in range(nline) :
                 errc.extend(f.readline().split())
 
-              vals = np.array( map(dfloat,valc), self.dtype )
+              vals = np.array( [dfloat(x) for x in valc], self.dtype )
               errs = np.array( errc, self.dtype )
               voxvals.append(vals)
               voxerrs.append(errs)
@@ -870,7 +1000,7 @@ class Fmesh:
     # mySlice = [slice(-1,-2,-1),slice(None),slice(None),slice(None)]
 
     it=0
-    if self.etag != 'times' :
+    if self.etag not in ['times','tally'] :
       # Dataset energia total
       it = 1
       sgcd.AddArray(makeVTKarray(self.dat[-1,:,:,:],'Value - Total',self.scaleFac))
@@ -922,7 +1052,7 @@ class Fmesh:
     rg.SetZCoordinates(za)
     rgcd = rg.GetCellData()
     it=0
-    if self.etag != 'times' :
+    if self.etag not in ['times','tally'] :
       # Dataset energia total
       it = 1
       rgcd.AddArray(makeVTKarray(self.dat[-1,:,:,:],'Value - Total',self.scaleFac))
@@ -987,6 +1117,37 @@ def checkonef(f,lblck):
         return True
       else:
         return False
+
+def sumCellInVox(voxvals,voxerrs,celfrac,Vmult='none',corr=True,nulcount=True): 
+  # sum the value in the voxel multiplied by the volume fraction
+  valf = list(map(lambda x,y : x*y,voxvals,celfrac[1]))
+  
+  if nulcount :
+    volOK = sum(celfrac[1])
+  else :
+    volOK = 0
+    for i,x in enumerate(valf):
+      if  x[-1] != 0:
+        volOK += celfrac[1][i]
+
+  vals = sum(valf)
+  if not corr:
+    err2 = sum(map(lambda x,y: x*x*y*y, valf,voxerrs))  
+    errs =  np.divide(np.sqrt(err2), vals, out=np.zeros_like(err2), where = ( vals != 0))
+  else:
+    err  = sum(map(lambda x,y: abs(x*y), valf,voxerrs))  
+    errs =  np.divide(err, vals, out=np.zeros_like(err), where = ( vals != 0))
+  
+  # Default units are X per volume units
+  if Vmult == 'vtot':
+    # multiply by the total volume of the voxel
+    
+    vals = celfrac[0] * vals     # here units are integral X
+  elif  Vmult == 'celf' :
+    # multiply by the voxel volume fraction 
+    vals = vals / volOK          # here units are X per volume units (volume of no zero voxel)
+
+  return vals,errs
    
 def sumElements(voxvals,voxerrs,celfrac,Vsum='onef',Vmult='none',corr=False) :
    if Vsum == 'onef' :
@@ -1061,8 +1222,7 @@ def sumElements(voxvals,voxerrs,celfrac,Vsum='onef',Vmult='none',corr=False) :
      vals = celfrac[0] * vals 
    elif  Vmult == 'celf' :
      # multiply by the voxel volume fraction 
-     f = celfrac[0] * volOK
-     vals = f * vals 
+     vals = vals / volOK
 
    return vals, errs
 
