@@ -57,7 +57,7 @@ def dfloat(c):
 
 # return a list of each nth charaters of a string
 def splitn(string,n):
-  return [string[i:i+n].strip() for i in xrange(0,len(string),n)]   
+  return [string[i:i+n].strip() for i in range(0,len(string),n)]   
 
 
 # Salta lineas (definida en cien sitios)
