@@ -640,43 +640,44 @@ newmesh   = {}    # mesh produced after operation
 idadd     = 0
 corr      = False
 
-clear_screen()
-print(principal_menu)
-ans,optname=answer_loop('principal')
-while True:
-
-  # enter meshtally filename
-  if ans[0:4] == 'open' :
-    enterfilename(optname)
-    if len(meshfiles) > len(meshtally):
-      filetype='MCNP'
-
-      meshtally.append(Meshtal(meshfiles[-1],filetype))
-      mltf_option(meshtally[-1])
-
-  # Print meshtally information
-  elif ans == 'info' :
-    if len(meshfiles) == 0:
-      print(' No meshtally file')
-    else:
-      meshinfo()
-
-  # Write mesh to VTK
-  elif ans == 'write':
-    if len(meshfiles) == 0:
-      print(' No meshtally file')
-    else:
-      vtkwrite()
-
-  # operate on mesh
-  elif ans == 'operate':
-    if len(meshfiles) == 0:
-      print(' No meshtally file')
-    else:
-      operate()
-  else:
-    break
-
-  ans,optname=answer_loop('principal')
+if __name__ == "__main__":
   clear_screen()
   print(principal_menu)
+  ans,optname=answer_loop('principal')
+  while True:
+
+    # enter meshtally filename
+    if ans[0:4] == 'open' :
+      enterfilename(optname)
+      if len(meshfiles) > len(meshtally):
+        filetype='MCNP'
+
+        meshtally.append(Meshtal(meshfiles[-1],filetype))
+        mltf_option(meshtally[-1])
+
+    # Print meshtally information
+    elif ans == 'info' :
+      if len(meshfiles) == 0:
+        print(' No meshtally file')
+      else:
+        meshinfo()
+
+    # Write mesh to VTK
+    elif ans == 'write':
+      if len(meshfiles) == 0:
+        print(' No meshtally file')
+      else:
+        vtkwrite()
+
+    # operate on mesh
+    elif ans == 'operate':
+      if len(meshfiles) == 0:
+        print(' No meshtally file')
+      else:
+        operate()
+    else:
+      break
+
+    ans,optname=answer_loop('principal')
+    clear_screen()
+    print(principal_menu)
