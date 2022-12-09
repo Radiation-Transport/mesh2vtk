@@ -579,12 +579,12 @@ class Fmesh:
       skipLines(f,5)
 
     nelemts = self.ldims[1] * self.ldims[2] * self.ldims[3]
-    ne = int(self.ldims[0])
+    nbin = int(self.ldims[0])
 
-    if (ne > 1) : 
-      nbin = ne+1
+    if (nbin > 1) : 
+      ne = nbin-1
     else:
-      nbin = ne
+      ne = nbin
     rshape = (nbin,nelemts)
 
     # 6 columns 12 char each
@@ -656,7 +656,7 @@ class Fmesh:
         voxvals = []
         voxerrs = []
      # read cell values and errors
-        for ic in cell:
+        for ind,ic in enumerate(cell):
           valc = []
           errc = []
           if    cfilter is None                 or   \
@@ -669,11 +669,11 @@ class Fmesh:
                 errc.extend(f.readline().split())
 
              vals = np.array( [dfloat(x) for x in valc], self.dtype )
-             errs = np.array( errc, self.dtype )
+             errs = np.array( [dfloat(x) for x in errc], self.dtype )
 
              if nbin > 1 :
-               np.append(vals,celdata[2][0])
-               np.append(errs,celdata[2][1])
+               vals = np.append(vals,celdata[2][ind][0])
+               errs = np.append(errs,celdata[2][ind][1])
 
              voxvals.append(vals)
              voxerrs.append(errs)
