@@ -4,6 +4,9 @@
 ![GitHub top language](https://img.shields.io/github/languages/top/Radiation-Transport/mesh2vtk)
 ![](https://img.shields.io/badge/license-EU%20PL-blue)
 
+
+This module has been updated and integrated into F4Enix as a submodule. Please check [F4Enix](https://github.com/Radiation-Transport/F4Enix/tree/main) and its documentation. All future developments will be done at the [F4Enix](https://github.com/Radiation-Transport/F4Enix/tree/main) project. This page will no longer be maintained.
+
 # mesh2vtk
 Mesh2Vtk converts the meshes produced by MCNP and D1S-UNED into a VTK format. The tool is a python based script able to read any mesh format in meshtally files produced by D1SUNED, MCNP5 or MCNP6. Mesh format includes usual MCNP column or matrix format and also specific D1SUNED format including cell or isotope contribution binning and source mesh importance format. Both Cartesian and cylindrical meshes can be read. The tool incorporates also simple functions to operate with meshes (add, scale, compare). The tool is used through a text based interactive menu, and it can be run under Windows or Linus systems. 
 
